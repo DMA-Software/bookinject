@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    BookInjector configuration schema.
+    Namespace: urn:bookinjector:config:1
+    XSD 1.0 compatible (xmllint, lxml, .NET, Xerces).
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:bi="urn:bookinjector:config:1"
+           targetNamespace="urn:bookinjector:config:1"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.0">
+
+    <!-- ===================================================== -->
+    <!-- Root                                                  -->
+    <!-- ===================================================== -->
+    <xs:element name="BookInjector" type="bi:BookInjectorType">
+        <!-- File extensions must not repeat -->
+        <xs:unique name="UniqueFileType">
+            <xs:selector xpath="bi:WatchFolder/bi:FileTypes/bi:FileType"/>
+            <xs:field xpath="."/>
+        </xs:unique>
+        <!-- OCR language codes must not repeat -->
+        <xs:unique name="UniqueOcrLanguage">
+            <xs:selector xpath="bi:OCR/bi:Languages/bi:Language"/>
+            <xs:field xpath="."/>
+        </xs:unique>
+        <!-- Allowed IP entries must not repeat -->
+        <xs:unique name="UniqueAllowedIP">
+            <xs:selector xpath="bi:Instance/bi:API/bi:AllowedIPs/bi:IP"/>
+            <xs:field xpath="."/>
+        </xs:unique>
+    </xs:element>
+
+    <xs:complexType name="BookInjectorType">
+        <xs:all>
+            <xs:element name="Instance"       type="bi:InstanceType"/>
+            <xs:element name="WatchFolder"    type="bi:WatchFolderType"/>
+            <xs:element name="OCR"            type="bi:OCRType"/>
+            <xs:element name="LocalDatabase"  type="bi:DatabaseType"/>
+            <xs:element name="RemoteDatabase" type="bi:DatabaseType"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- ===================================================== -->
+    <!-- Common simple types                                   -->
+    <!-- ===================================================== -->
+    <xs:simpleType name="NonEmptyTokenType">
+        <xs:restriction base="xs:token">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- File system path: any non-empty string, whitespace preserved -->
+    <xs:simpleType name="PathType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:pattern value=".*\S.*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PortType">
+        <xs:restriction base="xs:unsignedShort">
+            <xs:minInclusive value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="IPv4AddressType">
+        <xs:restriction base="xs:token">
+            <xs:pattern value="((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Loose IPv6 check: hex groups, colons, optional embedded IPv4 tail -->
+    <xs:simpleType name="IPv6AddressType">
+        <xs:restriction base="xs:token">
+            <xs:maxLength value="45"/>
+            <xs:pattern value="[0-9A-Fa-f:]*:[0-9A-Fa-f:]*(((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- RFC 1123 hostname; last label must start with a letter so that bad IPv4 is not accepted -->
+    <xs:simpleType name="HostnameType">
+        <xs:restriction base="xs:token">
+            <xs:maxLength value="253"/>
+            <xs:pattern value="([A-Za-z0-9]([A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)*[A-Za-z]([A-Za-z0-9\-]{0,61}[A-Za-z0-9])?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="HostType">
+        <xs:union memberTypes="bi:IPv4AddressType bi:IPv6AddressType bi:HostnameType"/>
+    </xs:simpleType>
+
+    <!-- Allowed client address: "*", IPv4[/0-32] or IPv6[/0-128] -->
+    <xs:simpleType name="WildcardType">
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="IPv4CidrType">
+        <xs:restriction base="xs:token">
+            <xs:pattern value="((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(/([0-9]|[12][0-9]|3[0-2]))?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="IPv6CidrType">
+        <xs:restriction base="xs:token">
+            <xs:pattern value="[0-9A-Fa-f:]*:[0-9A-Fa-f:]*(/([0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]))?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AllowedIPType">
+        <xs:union memberTypes="bi:WildcardType bi:IPv4CidrType bi:IPv6CidrType"/>
+    </xs:simpleType>
+
+    <!-- Matches LogLevel.fromStr() in src/enumerations.py -->
+    <xs:simpleType name="LogLevelType">
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="DEBUG"/>
+            <xs:enumeration value="INFO"/>
+            <xs:enumeration value="WARNING"/>
+            <xs:enumeration value="WARN"/>
+            <xs:enumeration value="ERROR"/>
+            <xs:enumeration value="CRITICAL"/>
+            <xs:enumeration value="CRIT"/>
+            <xs:enumeration value="FATAL"/>
+            <xs:enumeration value="debug"/>
+            <xs:enumeration value="info"/>
+            <xs:enumeration value="warning"/>
+            <xs:enumeration value="warn"/>
+            <xs:enumeration value="error"/>
+            <xs:enumeration value="critical"/>
+            <xs:enumeration value="crit"/>
+            <xs:enumeration value="fatal"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================================================== -->
+    <!-- Instance                                              -->
+    <!-- ===================================================== -->
+    <xs:complexType name="InstanceType">
+        <xs:all>
+            <xs:element name="Name"        type="bi:NonEmptyTokenType"/>
+            <xs:element name="Description" type="xs:string" minOccurs="0"/>
+            <xs:element name="API"         type="bi:APIType"/>
+            <xs:element name="WebUI"       type="bi:WebUIType"/>
+            <xs:element name="Logger"      type="bi:LoggerType"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- ===================================================== -->
+    <!-- API                                                   -->
+    <!-- ===================================================== -->
+    <xs:simpleType name="APIKeyType">
+        <!-- Printable ASCII without spaces, at least 16 characters -->
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[!-~]{16,}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="APIType">
+        <xs:all>
+            <xs:element name="ListenInterface" type="bi:HostType"/>
+            <xs:element name="ListenPort"      type="bi:PortType"/>
+            <xs:element name="TLS"             type="bi:TLSType"/>
+            <xs:element name="APIKey"          type="bi:APIKeyType"/>
+            <xs:element name="MaxConnections"  type="xs:positiveInteger"/>
+            <xs:element name="AllowedIPs"      type="bi:AllowedIPsType"/>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="TLSType">
+        <xs:all>
+            <xs:element name="CertificatePath" type="bi:PathType"/>
+            <xs:element name="KeyPath"         type="bi:PathType"/>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AllowedIPsType">
+        <xs:sequence>
+            <xs:element name="IP" type="bi:AllowedIPType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="WebUIType">
+        <xs:all>
+            <xs:element name="ListenInterface" type="bi:HostType"/>
+            <xs:element name="ListenPort"      type="bi:PortType"/>
+            <xs:element name="TLS"             type="bi:TLSType"/>
+            <xs:element name="MaxConnections"  type="xs:positiveInteger"/>
+            <xs:element name="AllowedIPs"      type="bi:AllowedIPsType"/>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <!-- ===================================================== -->
+    <!-- Logger                                                -->
+    <!-- ===================================================== -->
+    <xs:complexType name="LoggerType">
+        <xs:all>
+            <xs:element name="ConsoleLogger" type="bi:ConsoleLoggerType"/>
+            <xs:element name="FileLogger"    type="bi:FileLoggerType"/>
+            <xs:element name="SyslogLogger"  type="bi:SyslogLoggerType"/>
+        </xs:all>
+    </xs:complexType>
+    
+    <xs:simpleType name="LogFormatterType">
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="TEXT"/>
+            <xs:enumeration value="JSON"/>
+            <xs:enumeration value="text"/>
+            <xs:enumeration value="json"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ConsoleLoggerType">
+        <xs:all>
+            <xs:element name="LogLevel" type="bi:LogLevelType"/>
+            <xs:element name="LogFormatter" type="bi:LogFormatterType"/>
+            <xs:element name="Colorize" type="xs:boolean"/>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="FileLoggerType">
+        <xs:all>
+            <xs:element name="LogLevel"       type="bi:LogLevelType"/>
+            <xs:element name="LogFormatter"   type="bi:LogFormatterType"/>
+            <xs:element name="LogFilePath"    type="bi:PathType"/>
+            <!-- Bytes -->
+            <xs:element name="MaxLogFileSize" type="xs:positiveInteger"/>
+            <!-- 0 = no rotation backups (see FileLoggerConfig.validate) -->
+            <xs:element name="MaxLogFiles"    type="xs:nonNegativeInteger"/>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="SyslogLoggerType">
+        <xs:all>
+            <xs:element name="LogLevel"     type="bi:LogLevelType"/>
+            <xs:element name="LogFormatter" type="bi:LogFormatterType"/>
+            <xs:element name="SyslogServer" type="bi:HostType"/>
+            <xs:element name="SyslogPort"   type="bi:PortType"/>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <!-- ===================================================== -->
+    <!-- WatchFolder                                           -->
+    <!-- ===================================================== -->
+    <xs:simpleType name="FileExtensionType">
+        <!-- Extension without leading dot, lowercase -->
+        <xs:restriction base="xs:token">
+            <xs:pattern value="[a-z0-9]{1,16}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="FileTypeType">
+        <xs:simpleContent>
+            <xs:extension base="bi:FileExtensionType">
+                <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="FileTypesType">
+        <xs:sequence>
+            <xs:element name="FileType" type="bi:FileTypeType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DestinationType">
+        <xs:all>
+            <xs:element name="DestinationPath" type="bi:PathType"/>
+        </xs:all>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="WatchFolderType">
+        <xs:all>
+            <xs:element name="Path"                  type="bi:PathType"/>
+            <xs:element name="FileTypes"             type="bi:FileTypesType"/>
+            <xs:element name="ScanIntervalInSeconds" type="xs:positiveInteger"/>
+            <xs:element name="KeepOriginalFiles"     type="xs:boolean"/>
+            <xs:element name="MoveProcessedFiles"    type="bi:DestinationType"/>
+            <xs:element name="MoveFailedFiles"       type="bi:DestinationType"/>
+            <xs:element name="ListOfProcessedFiles"  type="bi:DestinationType"/>
+            <xs:element name="ListOfFailedFiles"     type="bi:DestinationType"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- ===================================================== -->
+    <!-- OCR                                                   -->
+    <!-- ===================================================== -->
+    <xs:simpleType name="OCREngineType">
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="Tesseract"/>
+            <xs:enumeration value="EasyOCR"/>
+            <xs:enumeration value="PaddleOCR"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tesseract traineddata code: ISO 639-2 + optional script/variant (aze_cyrl, chi_sim, uzb_cyrl) -->
+    <xs:simpleType name="LanguageCodeType">
+        <xs:restriction base="xs:token">
+            <xs:pattern value="[a-z]{3}(_[a-z]+)*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="LanguageType">
+        <xs:simpleContent>
+            <xs:extension base="bi:LanguageCodeType">
+                <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="LanguagesType">
+        <xs:sequence>
+            <xs:element name="Language" type="bi:LanguageType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="OCRType">
+        <xs:all>
+            <xs:element name="Languages" type="bi:LanguagesType"/>
+        </xs:all>
+        <xs:attribute name="enabled"            type="xs:boolean"      use="required"/>
+        <xs:attribute name="autoDetectLanguage" type="xs:boolean"      use="required"/>
+        <xs:attribute name="ocrType"            type="bi:OCREngineType" use="required"/>
+    </xs:complexType>
+
+    <!-- ===================================================== -->
+    <!-- Databases                                             -->
+    <!-- The engine is selected by the child element name      -->
+    <!-- (SQLite | PostgreSQL), so each engine gets its own    -->
+    <!-- strict set of connection fields.                      -->
+    <!-- ===================================================== -->
+    <xs:complexType name="DatabaseType">
+        <xs:choice>
+            <xs:element name="SQLite"     type="bi:SQLiteType"/>
+            <xs:element name="PostgreSQL" type="bi:PostgreSQLType"/>
+        </xs:choice>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="SQLiteVersionType">
+        <xs:restriction base="xs:positiveInteger">
+            <xs:enumeration value="3"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="SQLiteType">
+        <xs:all>
+            <xs:element name="DataSource"        type="bi:PathType" minOccurs="0"/>
+            <xs:element name="Version"           type="bi:SQLiteVersionType"/>
+            <xs:element name="DBFilePath"        type="bi:PathType"/>
+            <xs:element name="MaxConnections"    type="xs:positiveInteger"/>
+            <!-- Seconds -->
+            <xs:element name="ConnectionTimeout" type="xs:positiveInteger"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- PostgreSQL identifiers: up to 63 bytes (NAMEDATALEN - 1) -->
+    <xs:simpleType name="PgIdentifierType">
+        <xs:restriction base="xs:token">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="63"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Password: any non-empty string, whitespace preserved as-is -->
+    <xs:simpleType name="PasswordType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="PostgreSQLType">
+        <xs:all>
+            <xs:element name="Host"              type="bi:HostType"/>
+            <xs:element name="Port"              type="bi:PortType"/>
+            <xs:element name="Username"          type="bi:PgIdentifierType"/>
+            <xs:element name="Password"          type="bi:PasswordType"/>
+            <xs:element name="Database"          type="bi:PgIdentifierType"/>
+            <xs:element name="MaxConnections"    type="xs:positiveInteger"/>
+            <!-- Seconds -->
+            <xs:element name="ConnectionTimeout" type="xs:positiveInteger"/>
+        </xs:all>
+    </xs:complexType>
+
+</xs:schema>

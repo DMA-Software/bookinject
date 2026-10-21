@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<BookInjector xmlns="urn:bookinjector:config:1"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="urn:bookinjector:config:1 schemas/bookinjector.xsd">
+    <Instance>
+        <Name>BookInjector</Name>
+        <Description>BookInjector is a tool for injecting books into the system.</Description>
+        <API enabled="true">
+            <ListenInterface>0.0.0.0</ListenInterface>
+            <ListenPort>18080</ListenPort>
+            <TLS enabled="false">
+                <CertificatePath>/path/to/tls/certificate.pem</CertificatePath>
+                <KeyPath>/path/to/tls/key.pem</KeyPath>
+            </TLS>
+            <APIKey>your_api_key_here</APIKey>
+            <MaxConnections>100</MaxConnections>
+            <AllowedIPs>
+                <IP>0.0.0.0/0</IP>
+            </AllowedIPs>
+        </API>
+        <WebUI enabled="true">
+            <ListenInterface>0.0.0.0</ListenInterface>
+            <ListenPort>8080</ListenPort>
+            <TLS enabled="false">
+                <CertificatePath>/path/to/tls/certificate.pem</CertificatePath>
+                <KeyPath>/path/to/tls/key.pem</KeyPath>
+            </TLS>
+            <MaxConnections>100</MaxConnections>
+            <AllowedIPs>
+                <IP>0.0.0.0/0</IP>
+            </AllowedIPs>
+        </WebUI>
+        <Logger>
+            <ConsoleLogger enabled="true">
+                <LogLevel>INFO</LogLevel>
+                <LogFormatter>text</LogFormatter>
+                <Colorize>false</Colorize>
+            </ConsoleLogger>
+            <FileLogger enabled="true">
+                <LogLevel>INFO</LogLevel>
+                <LogFormatter>text</LogFormatter>
+                <LogFilePath>/path/to/log/file.log</LogFilePath>
+                <MaxLogFileSize>10485760</MaxLogFileSize>
+                <MaxLogFiles>5</MaxLogFiles>
+            </FileLogger>
+            <SyslogLogger enabled="false">
+                <LogLevel>INFO</LogLevel>
+                <LogFormatter>json</LogFormatter>
+                <SyslogServer>localhost</SyslogServer>
+                <SyslogPort>514</SyslogPort>
+            </SyslogLogger>
+        </Logger>
+    </Instance>
+    <WatchFolder>
+        <Path>/path/to/watch/folder</Path>
+        <FileTypes>
+            <FileType enabled="true">pdf</FileType>
+            <FileType enabled="true">epub</FileType>
+            <FileType enabled="true">mobi</FileType>
+            <FileType enabled="true">png</FileType>
+            <FileType enabled="true">jpg</FileType>
+            <FileType enabled="true">jpeg</FileType>
+            <FileType enabled="true">tiff</FileType>
+        </FileTypes>
+        <ScanIntervalInSeconds>60</ScanIntervalInSeconds>
+        <KeepOriginalFiles>false</KeepOriginalFiles>
+        <MoveProcessedFiles enabled="true">
+            <DestinationPath>/path/to/processed/folder</DestinationPath>
+        </MoveProcessedFiles>
+        <MoveFailedFiles enabled="true">
+            <DestinationPath>/path/to/failed/folder</DestinationPath>
+        </MoveFailedFiles>
+        <ListOfProcessedFiles enabled="true">
+            <DestinationPath>/path/to/processed/list.txt</DestinationPath>
+        </ListOfProcessedFiles>
+        <ListOfFailedFiles enabled="true">
+            <DestinationPath>/path/to/failed/list.txt</DestinationPath>
+        </ListOfFailedFiles>
+    </WatchFolder>
+    <OCR enabled="true" autoDetectLanguage="true" ocrType="Tesseract">
+        <Languages>
+            <Language enabled="true">eng</Language>
+            <Language enabled="true">rus</Language>
+            <Language enabled="true">aze</Language>
+            <Language enabled="true">tur</Language>
+            <Language enabled="true">uzb</Language>
+            <Language enabled="true">kaz</Language>
+            <Language enabled="true">kir</Language>
+            <Language enabled="true">tat</Language>
+        </Languages>
+    </OCR>
+    <LocalDatabase enabled="true">
+        <SQLite>
+            <DataSource>bookinjector.db</DataSource>
+            <Version>3</Version>
+            <DBFilePath>/path/to/database/bookinjector.db</DBFilePath>
+            <MaxConnections>10</MaxConnections>
+            <ConnectionTimeout>30</ConnectionTimeout>
+        </SQLite>
+    </LocalDatabase>
+    <RemoteDatabase enabled="false">
+        <PostgreSQL>
+            <Host>localhost</Host>
+            <Port>5432</Port>
+            <Username>your_username</Username>
+            <Password>your_password</Password>
+            <Database>bookinjector</Database>
+            <MaxConnections>10</MaxConnections>
+            <ConnectionTimeout>30</ConnectionTimeout>
+        </PostgreSQL>
+    </RemoteDatabase>
+</BookInjector>
