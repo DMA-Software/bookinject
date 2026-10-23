@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree.ElementTree import Element, ElementTree, ParseError, indent, parse
 
-from .database import DatabaseConfig, PostgreSQLConfig, SQLiteConfig
-from .instance import Instance
-from .ocr import OCRConfig
-from .watch_folder import WatchFolderConfig
-from .xml_utils import checkTag, makeElement, requireChild
+from src.application.config.database import (
+    DatabaseConfig,
+    PostgreSQLConfig,
+    SQLiteConfig,
+)
+from src.application.config.instance import Instance
+from src.application.config.ocr import OCRConfig
+from src.application.config.watch_folder import WatchFolderConfig
+from src.application.config.xml_utils import checkTag, makeElement, requireChild
 
 
 @dataclass

@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from xml.etree.ElementTree import Element
 
-from .xml_utils import (
+from src.application.config.xml_utils import (
     addChild,
     boolAttr,
     checkTag,

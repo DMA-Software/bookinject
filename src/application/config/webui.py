@@ -4,8 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from xml.etree.ElementTree import Element
 
-from .api import TLSConfig
-from .xml_utils import (
+from src.application.config.api import TLSConfig
+from src.application.config.xml_utils import (
     addChild,
     boolAttr,
     checkTag,

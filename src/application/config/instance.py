@@ -4,10 +4,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from xml.etree.ElementTree import Element
 
-from .api import APIConfig
-from .logger import LoggerConfig
-from .webui import WebUIConfig
-from .xml_utils import addChild, checkTag, childText, makeElement, requireChild
+from src.application.config.api import APIConfig
+from src.application.config.logger import LoggerConfig
+from src.application.config.webui import WebUIConfig
+from src.application.config.xml_utils import (
+    addChild,
+    checkTag,
+    childText,
+    makeElement,
+    requireChild,
+)
 
 
 @dataclass

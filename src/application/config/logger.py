@@ -4,17 +4,10 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from logging.handlers import SysLogHandler
 from xml.etree.ElementTree import Element
 
-# pyrefly: ignore [missing-module-attribute]
-from src.constants import (
-    DEFAULT_MAX_LOG_FILE_BACKUP_COUNT,
-    DEFAULT_MAX_LOG_FILE_SIZE,
-    MB_TO_BYTE,
-)
-from src.enumerations import LogFormat, LogLevel
-
-from .xml_utils import (
+from src.application.config.xml_utils import (
     addChild,
     boolAttr,
     boolChild,
@@ -24,6 +17,14 @@ from .xml_utils import (
     makeElement,
     requireChild,
 )
+
+# pyrefly: ignore [missing-module-attribute]
+from src.constants import (
+    DEFAULT_MAX_LOG_FILE_BACKUP_COUNT,
+    DEFAULT_MAX_LOG_FILE_SIZE,
+    MB_TO_BYTE,
+)
+from src.enumerations import LogFormat, LogLevel
 
 
 @dataclass
@@ -99,7 +100,7 @@ class BaseLoggerConfig(ABC):
         if not log_formatter_text:
             raise ValueError(f"Invalid log formatter '{log_formatter_text}' provided.")
 
-        self.logFormatterType = LogFormat.from_str(log_formatter_text)
+        self.logFormatterType = LogFormat.fromStr(log_formatter_text)
 
     def toJSON(self) -> dict:
         return {
@@ -116,7 +117,7 @@ class BaseLoggerConfig(ABC):
         if "logLevel" in jsonData:
             self.logLevel = LogLevel.fromStr(jsonData["logLevel"])
         if "logFormatterType" in jsonData:
-            self.logFormatterType = LogFormat.from_str(jsonData["logFormatterType"])
+            self.logFormatterType = LogFormat.fromStr(jsonData["logFormatterType"])
 
 
 @dataclass
@@ -262,6 +263,10 @@ class SyslogLoggerConfig(BaseLoggerConfig):
         default=514, metadata={"description": "Syslog server port"}
     )
 
+    syslogFacility: str | None = field(
+        default="local0", metadata={"description": "Syslog facility"}
+    )
+
     @property
     def xmlTag(self) -> str:
         return "SyslogLogger"
@@ -286,10 +291,20 @@ class SyslogLoggerConfig(BaseLoggerConfig):
                 "Syslog server port must be a positive integer between 0 and 65536"
             )
 
+        if not self.syslogFacility or not isinstance(self.syslogFacility, str):
+            raise ValueError("Syslog facility must be defined.")
+
+        if self.syslogFacility.lower() not in SysLogHandler.facility_names:
+            raise ValueError(
+                f"Unknown syslog facility '{self.syslogFacility}'. "
+                f"Allowed: {', '.join(sorted(SysLogHandler.facility_names))}."
+            )
+
     def toXML(self) -> Element:
         syslog_logger_element = super().toXML()
         addChild(syslog_logger_element, "SyslogServer", self.syslogServerAddress)
         addChild(syslog_logger_element, "SyslogPort", self.syslogServerPort)
+        addChild(syslog_logger_element, "SyslogFacility", self.syslogFacility)
         return syslog_logger_element
 
     def fromXML(self, xmlElement) -> None:
@@ -302,6 +317,10 @@ class SyslogLoggerConfig(BaseLoggerConfig):
 
         self.syslogServerPort = intChild(xmlElement, "SyslogPort", owner)
 
+        self.syslogFacility = childText(xmlElement, "SyslogFacility", owner)
+        if not self.syslogFacility:
+            raise ValueError(f"Invalid syslog facility '{self.syslogFacility}' provided.")
+
         self.validate()
 
     def toJSON(self) -> dict:
@@ -309,6 +328,7 @@ class SyslogLoggerConfig(BaseLoggerConfig):
             **super().toJSON(),
             "syslogServerAddress": self.syslogServerAddress,
             "syslogServerPort": self.syslogServerPort,
+            "syslogFacility": self.syslogFacility,
         }
 
     def fromJSON(self, jsonData: dict) -> None:
@@ -317,6 +337,7 @@ class SyslogLoggerConfig(BaseLoggerConfig):
             "syslogServerAddress", self.syslogServerAddress
         )
         self.syslogServerPort = jsonData.get("syslogServerPort", self.syslogServerPort)
+        self.syslogFacility = jsonData.get("syslogFacility", self.syslogFacility)
         self.validate()
 
 

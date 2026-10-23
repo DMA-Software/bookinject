@@ -5,9 +5,7 @@ import re
 from dataclasses import dataclass, field
 from xml.etree.ElementTree import Element
 
-from src.enumerations import OCREngine
-
-from .xml_utils import (
+from src.application.config.xml_utils import (
     addChild,
     boolAttr,
     checkTag,
@@ -16,6 +14,7 @@ from .xml_utils import (
     makeElement,
     requireChild,
 )
+from src.enumerations import OCREngine
 
 # Tesseract traineddata code: ISO 639-2 + optional script/variant (see LanguageCodeType in the XSD)
 _LANGUAGE_CODE_PATTERN = re.compile(r"[a-z]{3}(_[a-z]+)*")
@@ -121,7 +120,7 @@ class OCRConfig:
         ocr_type_text = xmlElement.get("ocrType")
         if ocr_type_text is None:
             raise ValueError(f"The 'ocrType' attribute is missing in the XML for {owner}.")
-        self.ocrType = OCREngine.from_str(ocr_type_text)
+        self.ocrType = OCREngine.fromStr(ocr_type_text)
 
         self.languages = []
         languages_element = requireChild(xmlElement, "Languages", owner)
@@ -147,7 +146,7 @@ class OCRConfig:
         self.enabled = jsonData.get("enabled", self.enabled)
         self.autoDetectLanguage = jsonData.get("autoDetectLanguage", self.autoDetectLanguage)
         if "ocrType" in jsonData:
-            self.ocrType = OCREngine.from_str(jsonData["ocrType"])
+            self.ocrType = OCREngine.fromStr(jsonData["ocrType"])
         if "languages" in jsonData:
             self.languages = []
             for language_data in jsonData["languages"]:
