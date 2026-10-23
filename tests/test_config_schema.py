@@ -11,7 +11,8 @@ import pytest
 import xmlschema
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIG_PATH = PROJECT_ROOT / "conf" / "bookinjector.xml"
+# Test-only reference config with stable placeholder values (see the file header)
+CONFIG_PATH = PROJECT_ROOT / "tests" / "fixtures" / "bookinjector.xml"
 SCHEMA_PATH = PROJECT_ROOT / "conf" / "schemas" / "bookinjector.xsd"
 
 NS = {"bi": "urn:bookinjector:config:1"}
@@ -72,7 +73,7 @@ VALID_CASES = [
      "<SyslogServer>192.168.1.10</SyslogServer>"),
     ("password-special-chars", "<Password>your_password</Password>",
      "<Password>1P@ss w0rd!&amp;-</Password>"),
-    ("allowed-ips-multiple", "<IP>*</IP>",
+    ("allowed-ips-multiple", "<IP>0.0.0.0/0</IP>",
      "<IP>10.0.0.0/8</IP><IP>192.168.1.5</IP><IP>fe80::/10</IP>"),
     ("loglevel-lowercase", "<LogLevel>INFO</LogLevel>", "<LogLevel>warn</LogLevel>"),
     ("ocr-lang-script-variant", '<Language enabled="true">aze</Language>',
@@ -107,8 +108,9 @@ INVALID_CASES = [
      '<FileType enabled="true">EPUB</FileType>'),
     ("ocr-lang-duplicate", '<Language enabled="true">rus</Language>',
      '<Language enabled="true">eng</Language>'),
-    ("allowed-ip-duplicate", "<IP>*</IP>", "<IP>*</IP><IP>*</IP>"),
-    ("ipv4-cidr-33", "<IP>*</IP>", "<IP>10.0.0.0/33</IP>"),
+    ("allowed-ip-duplicate", "<IP>0.0.0.0/0</IP>",
+     "<IP>0.0.0.0/0</IP><IP>0.0.0.0/0</IP>"),
+    ("ipv4-cidr-33", "<IP>0.0.0.0/0</IP>", "<IP>10.0.0.0/33</IP>"),
     ("sqlite-with-host", "<Version>3</Version>", "<Version>3</Version><Host>x</Host>"),
     ("sqlite-version-2", "<Version>3</Version>", "<Version>2</Version>"),
     ("pg-with-dbfilepath", "<Database>bookinjector</Database>",

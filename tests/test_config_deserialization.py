@@ -14,7 +14,8 @@ from src.application.config.database import PostgreSQLConfig, SQLiteConfig
 from src.enumerations import LogFormat, LogLevel, OCREngine
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONFIG_PATH = PROJECT_ROOT / "conf" / "bookinjector.xml"
+# Test-only reference config with stable placeholder values (see the file header)
+CONFIG_PATH = PROJECT_ROOT / "tests" / "fixtures" / "bookinjector.xml"
 SCHEMA_PATH = PROJECT_ROOT / "conf" / "schemas" / "bookinjector.xsd"
 
 # FileLoggerConfig.validate() requires an existing writable log directory
