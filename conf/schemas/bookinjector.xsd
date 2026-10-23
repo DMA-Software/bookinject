@@ -244,6 +244,7 @@
             <xs:element name="LogFormatter" type="bi:LogFormatterType"/>
             <xs:element name="SyslogServer" type="bi:HostType"/>
             <xs:element name="SyslogPort"   type="bi:PortType"/>
+            <xs:element name="SyslogFacility" type="xs:string" />
         </xs:all>
         <xs:attribute name="enabled" type="xs:boolean" use="required"/>
     </xs:complexType>
