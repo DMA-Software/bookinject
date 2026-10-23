@@ -10,17 +10,12 @@ MB_TO_BYTE: Final[int] = 1024 * KB_TO_BYTE  # It's one megabyte in bytes
 GB_TO_BYTE: Final[int] = 1024 * MB_TO_BYTE  # It's one gigabyte in bytes
 TB_TO_BYTE: Final[int] = 1024 * GB_TO_BYTE  # It's one terabyte in bytes
 
-# Log formatter
-JSON_FORMATTER = Formatter(
-    '{"time": "%(asctime)s", '
-    '"process": "%(process)d", '
-    '"name": "%(name)s", '
-    '"level": "%(levelname)s", '
-    '"pathname": "%(pathname)s", '
-    '"lineno": "%(lineno)d", '
-    '"funcName": "%(funcName)s", '
-    '"message": "%(message)s"}'
-)
+# Logger
+DEFAULT_MAIN_LOGGER_NAME: Final[str] = "BookInjector"
+# Child of the main logger: shares its handlers, see BILogger
+DEFAULT_DEBUG_LOGGER_NAME: Final[str] = f"{DEFAULT_MAIN_LOGGER_NAME}.Debug"
+
+# Log formatter (JSON formatter lives in src.application.logger.JsonFormatter)
 TEXT_FORMATTER = Formatter(
     "%(asctime)s | %(name)s | %(levelname)s | %(pathname)s | %(lineno)d | %(funcName)s | %(message)s"
 )
