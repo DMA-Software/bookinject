@@ -60,7 +60,7 @@ class LogFormat(Enum):
         return self.__str__()
 
     @staticmethod
-    def from_str(label: str):
+    def fromStr(label: str):
         label = label.lower()
         retValue = LogFormat.Unknown
         
@@ -73,7 +73,7 @@ class LogFormat(Enum):
         return retValue
 
     @staticmethod
-    def from_int(label: int):
+    def fromInt(label: int):
         try:
             return LogFormat(label)
         except ValueError:
@@ -94,7 +94,7 @@ class OCREngine(Enum):
         return self.__str__()
 
     @staticmethod
-    def from_str(label: str):
+    def fromStr(label: str):
         switchObject = {
             "tesseract": OCREngine.Tesseract,
             "easyocr": OCREngine.EasyOCR,
@@ -103,7 +103,7 @@ class OCREngine(Enum):
         return switchObject.get(label.lower(), OCREngine.Invalid)
 
     @staticmethod
-    def from_int(label: int):
+    def fromInt(label: int):
         try:
             return OCREngine(label)
         except ValueError:
@@ -132,12 +132,12 @@ class RequestMethods(Enum):
         __repr__(self):
             Returns the lowercase string representation of the request method.
 
-        from_str(label: str):
+        fromStr(label: str):
             Static method that returns the corresponding RequestMethods enum
             value based on the provided string label. If the label is not recognized,
             it returns the Invalid enum value.
 
-        from_int(value: int):
+        fromInt(value: int):
             Static method that returns the corresponding RequestMethods enum
             value based on the provided integer value. If the value is not recognized,
             it returns the Invalid enum value.
@@ -160,9 +160,8 @@ class RequestMethods(Enum):
         return self.name.lower()
 
     @staticmethod
-    def from_str(label: str):
+    def fromStr(label: str) -> RequestMethods:
         label = label.lower()
-        retValue: RequestMethods
         switchObject = {
             "unknown": RequestMethods.Unknown,
             "get": RequestMethods.Get,
@@ -176,8 +175,7 @@ class RequestMethods(Enum):
         return switchObject.get(label, RequestMethods.Invalid)
 
     @staticmethod
-    def from_int(value: int):
-        retValue: RequestMethods
+    def fromInt(value: int) -> RequestMethods:
         switchObject = {
             0: RequestMethods.Unknown,
             1: RequestMethods.Get,
@@ -215,12 +213,12 @@ class RequestBodyType(Enum):
         __repr__(self):
             Returns the lowercase string representation of the request body type.
 
-        from_str(label: str):
+        fromStr(label: str):
             Static method that returns the corresponding RequestBodyType enum
             value based on the provided string label. If the label is not recognized,
             it returns the Invalid enum value.
 
-        from_int(value: int):
+        fromInt(value: int):
             Static method that returns the corresponding RequestBodyType enum
             value based on the provided integer value. If the value is not recognized,
             it returns the Invalid enum value.
@@ -248,9 +246,8 @@ class RequestBodyType(Enum):
         return self.name.lower()
 
     @staticmethod
-    def from_str(label: str):
+    def fromStr(label: str) -> RequestBodyType:
         label = label.lower()
-        retValue: RequestBodyType
         switchObject = {
             "unknown": RequestBodyType.Unknown,
             "none": RequestBodyType.NoneType,
@@ -267,8 +264,7 @@ class RequestBodyType(Enum):
         return switchObject.get(label, RequestBodyType.Invalid)
 
     @staticmethod
-    def from_int(value: int):
-        retValue: RequestBodyType
+    def fromInt(value: int) -> RequestBodyType:
         switchObject = {
             0: RequestBodyType.Unknown,
             1: RequestBodyType.NoneType,
