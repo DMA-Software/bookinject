@@ -39,7 +39,7 @@
             <FileLogger enabled="true">
                 <LogLevel>INFO</LogLevel>
                 <LogFormatter>text</LogFormatter>
-                <LogFilePath>/path/to/log/file.log</LogFilePath>
+                <LogFilePath>C:\Projects\DMA\bookinject\log\bookinjector.log</LogFilePath>
                 <MaxLogFileSize>10485760</MaxLogFileSize>
                 <MaxLogFiles>5</MaxLogFiles>
             </FileLogger>
@@ -48,11 +48,12 @@
                 <LogFormatter>json</LogFormatter>
                 <SyslogServer>localhost</SyslogServer>
                 <SyslogPort>514</SyslogPort>
+                <SyslogFacility>local0</SyslogFacility>
             </SyslogLogger>
         </Logger>
     </Instance>
     <WatchFolder>
-        <Path>/path/to/watch/folder</Path>
+        <Path>C:\Projects\DMA\bookinject\books\new</Path>
         <FileTypes>
             <FileType enabled="true">pdf</FileType>
             <FileType enabled="true">epub</FileType>
@@ -65,16 +66,16 @@
         <ScanIntervalInSeconds>60</ScanIntervalInSeconds>
         <KeepOriginalFiles>false</KeepOriginalFiles>
         <MoveProcessedFiles enabled="true">
-            <DestinationPath>/path/to/processed/folder</DestinationPath>
+            <DestinationPath>C:\Projects\DMA\bookinject\books\processed</DestinationPath>
         </MoveProcessedFiles>
         <MoveFailedFiles enabled="true">
-            <DestinationPath>/path/to/failed/folder</DestinationPath>
+            <DestinationPath>C:\Projects\DMA\bookinject\books\failed</DestinationPath>
         </MoveFailedFiles>
         <ListOfProcessedFiles enabled="true">
-            <DestinationPath>/path/to/processed/list.txt</DestinationPath>
+            <DestinationPath>C:\Projects\DMA\bookinject\books\processed\list.txt</DestinationPath>
         </ListOfProcessedFiles>
         <ListOfFailedFiles enabled="true">
-            <DestinationPath>/path/to/failed/list.txt</DestinationPath>
+            <DestinationPath>C:\Projects\DMA\bookinject\books\failed\list.txt</DestinationPath>
         </ListOfFailedFiles>
     </WatchFolder>
     <OCR enabled="true" autoDetectLanguage="true" ocrType="Tesseract">
