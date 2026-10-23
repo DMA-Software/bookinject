@@ -279,3 +279,63 @@ class RequestBodyType(Enum):
             10: RequestBodyType.Multipart,
         }
         return switchObject.get(value, RequestBodyType.Invalid)
+
+
+class ServiceState(Enum):
+    Invalid = -1
+    Unknown = 0
+    New = 1
+    Starting = 2
+    Running = 3
+    Stopping = 4
+    Stopped = 5
+    Failed = 6
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.__str__()
+
+    @staticmethod
+    def fromStr(label: str):
+        for state in ServiceState:
+            if state.name.lower() == label.lower():
+                return state
+        return ServiceState.Invalid
+
+    @staticmethod
+    def fromInt(label: int):
+        try:
+            return ServiceState(label)
+        except ValueError:
+            return ServiceState.Invalid
+
+
+class FailurePolicy(Enum):
+    """What the ServiceManager does when a service fails."""
+
+    Invalid = -1
+    Unknown = 0
+    FailFast = 1  # Stop all services and the reactor
+    Ignore = 2  # Log the failure, keep the other services running
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.__str__()
+
+    @staticmethod
+    def fromStr(label: str):
+        for policy in FailurePolicy:
+            if policy.name.lower() == label.lower():
+                return policy
+        return FailurePolicy.Invalid
+
+    @staticmethod
+    def fromInt(label: int):
+        try:
+            return FailurePolicy(label)
+        except ValueError:
+            return FailurePolicy.Invalid
