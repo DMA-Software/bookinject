@@ -245,3 +245,7 @@ cython_debug/
 .agentbridge/
 
 HANDOFF.md
+.explyt/
+books/
+log/
+tmp/
