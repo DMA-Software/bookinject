@@ -284,25 +284,20 @@ class ServiceManager(MultiService):
 
         logger.info("Starting all services")
 
-        try:
-            order = self._resolveOrder()
-            debugLogger.info("Starting services in dependency order")
-
-        except ValueError:
-            logger.exception("Cannot resolve service dependencies")
+        order = self._resolveOrder()
+        if order is None:
+            logger.error("Cannot resolve service dependencies, no service was started")
             return False
+        debugLogger.info("Starting services in dependency order")
 
         started: list[BaseService] = []
         for service in order:
             debugLogger.info(f"Starting service {service.name}")
 
-            if self._dependenciesOf(service) is None:
-                logger.warning(f"Skipping service {service.name}: no dependencies")
-                return False
-            
             notRunning = [
-                # pyrefly: ignore[not-iterable]
-                dep.name for dep in self._dependenciesOf(service) if dep.state is not ServiceState.Running
+                dep.name
+                for dep in self._dependenciesOf(service) or []
+                if dep.state is not ServiceState.Running
             ]
             if notRunning:
                 logger.warning(
@@ -329,20 +324,16 @@ class ServiceManager(MultiService):
         Stop all ongoing services and sampling processes.
 
         This method stops any current sampling, resolves the order of services
-        to stop, and then halts them in reverse order. If a ValueError occurs
-        during the resolution of service order, the base services are used
-        instead.
-
-        Raises:
-            ValueError: If the service order cannot be resolved.
+        to stop, and then halts them in reverse order. If the order cannot be
+        resolved (dependency cycle or unregistered dependency), the services
+        are stopped in reverse registration order instead. Never raises.
         """
         self.stopSampling()
-        try:
-            order = self._resolveOrder()
-            debugLogger.info("Stopping services in order: %s", order)
-        except ValueError:
-            logger.error("Failed to resolve service order, using base services")
+        order = self._resolveOrder()
+        if order is None:
+            logger.error("Failed to resolve service order, using registration order")
             order = self._baseServices()
+        debugLogger.info("Stopping services in order: %s", order)
 
         await self._stopServices(reversed(order))
         debugLogger.info("Stopped services in order: %s", order)
@@ -423,10 +414,8 @@ class ServiceManager(MultiService):
             service (BaseService): The service whose dependencies are to be determined.
 
         Returns:
-            list[BaseService]: A list of dependent services for the given service.
-
-        Raises:
-            ValueError: If a required dependency is not registered in the system.
+            list[BaseService] | None: The dependencies of the service (an empty list if it
+            has none), or None if a required dependency is not registered (logged).
         """
 
         dependencies: list[BaseService] = []
@@ -446,23 +435,22 @@ class ServiceManager(MultiService):
         debugLogger.debug(f"Resolved dependencies for {service.name}")
         return dependencies
 
-    def _resolveOrder(self) -> list[BaseService]:
+    def _resolveOrder(self) -> list[BaseService] | None:
         """Resolve the order of service initialization based on dependencies.
 
         This method topologically sorts the services according to their dependencies,
         ensuring no dependency cycles exist.
 
         Returns:
-            list[BaseService]: A list of services in the order they should be initialized.
-
-        Raises:
-            ValueError: If a dependency cycle is detected among the services.
+            list[BaseService] | None: A list of services in the order they should be
+            initialized, or None (logged) if a dependency cycle is detected or a
+            dependency is not registered.
         """
         order: list[BaseService] = []
         visiting: set[int] = set()
         visited: set[int] = set()
 
-        def visit(service: BaseService) -> None:
+        def visit(service: BaseService) -> bool:
             """
             Perform a depth-first traversal for resolving service dependencies.
 
@@ -472,37 +460,37 @@ class ServiceManager(MultiService):
             Args:
                 service (BaseService): The service whose dependencies need to be resolved.
 
-            Raises:
-                ValueError: If a cyclic dependency is detected involving the given service.
+            Returns:
+                bool: False if a dependency cycle or an unregistered dependency was found.
             """
             if id(service) in visited:
                 debugLogger.debug("Service %s already visited", service.name)
-                return
+                return True
 
             if id(service) in visiting:
                 logger.error(f"Dependency cycle detected at {service.name}")
-                return
+                return False
+
+            dependencies = self._dependenciesOf(service)
+            if dependencies is None:
+                # Already logged by _dependenciesOf: a required service is not registered
+                return False
 
             visiting.add(id(service))
-            if self._dependenciesOf(service) is None:
-                debugLogger.debug(f"Service {service.name} has no dependencies")
-                visiting.discard(id(service))
-                visited.add(id(service))
-                order.append(service)
-                return
-
-            # pyrefly: ignore[not-iterable]
-            for dependency in self._dependenciesOf(service):
+            for dependency in dependencies:
                 debugLogger.debug(f"Visiting dependency {dependency.name} of service {service.name}")
-                visit(dependency)
+                if not visit(dependency):
+                    return False
 
             visiting.discard(id(service))
             visited.add(id(service))
             order.append(service)
+            return True
 
         for service in self._baseServices():
             debugLogger.debug(f"Visiting service {service.name}")
-            visit(service)
+            if not visit(service):
+                return None
 
         debugLogger.debug(f"Service order: {order}")
         return order

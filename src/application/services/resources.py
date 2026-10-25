@@ -261,7 +261,7 @@ class ResourceMeter:
             logger.error("The name must be a non-empty string")
             return
 
-        if not isinstance(value, float) or not isinstance(value, int):
+        if not isinstance(value, (float, int)):
             logger.error("The value must be a float or an integer")
             return
 
@@ -303,7 +303,7 @@ class ResourceMeter:
             logger.error("The name must be a non-empty string")
             return
 
-        if not isinstance(delta, float) or not isinstance(delta, int):
+        if not isinstance(delta, (float, int)):
             logger.error("The value of delta must be float or integer.")
             return
 
@@ -375,7 +375,7 @@ class ProcessMonitor:
 
         try:
             self._process = psutil.Process(self.pid)
-            debugLogger.info(f"Process info for the process with PID {self.pid}: {self._process.info}")
+            debugLogger.info(f"Process info for the process with PID {self.pid}: {self._process.as_dict()}")
 
             self._process.cpu_percent(None)  # The first call always returns 0.0
             debugLogger.info(f"Process CPU percent for the process with PID {self.pid}: {self._process.cpu_percent(None)}")
