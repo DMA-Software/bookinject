@@ -89,7 +89,8 @@ class MainApplication:
     async def _stopServices(self) -> None:
         """Stop all services unless ``ServiceManager.shutdown()`` already did."""
         if self.services.isShuttingDown:
-            self.debugLogger.debug("Services are already being stopped")
+            self.debugLogger.debug("Services are already being stopped, waiting for it")
+            await self.services.shutdown()
             return
 
         await self.services.stopAll()

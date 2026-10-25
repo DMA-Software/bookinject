@@ -64,6 +64,10 @@ class ServiceManager(MultiService):
 
         self.events = events
         self._shuttingDown = False
+        # Fires when the stop in flight is done; None when nothing is stopping
+        self._stopping: Deferred[None] | None = None
+        # Fires when shutdown() has stopped the services and asked the reactor to stop
+        self._shutdownDone: Deferred[None] | None = None
 
         self._processMonitor = ProcessMonitor()
         if not isinstance(self._processMonitor, ProcessMonitor):
@@ -176,14 +180,19 @@ class ServiceManager(MultiService):
             ResourceReport: Contains the timestamp, process resource usage, and a
             dictionary of resource usage for each base service.
         """
-        services = {service.name or "": service.getResourceUsage() for service in self._baseServices()}
+        services = {
+            service.name or "": service.getResourceUsage()
+            for service in self._baseServices()
+        }
         return ResourceReport(
             timestamp=time.time(),
             process=self._processMonitor.read(),
             services=services,
         )
 
-    def startSampling(self, intervalSeconds: float, clock: IReactorTime | None = None) -> bool:
+    def startSampling(
+        self, intervalSeconds: float, clock: IReactorTime | None = None
+    ) -> bool:
         """
         Start the resource sampling process at a specified interval.
 
@@ -226,8 +235,10 @@ class ServiceManager(MultiService):
         self._sampler = sampler
 
         debugLogger.info("Starting resource sampling")
-        _defferedLoopingCall = sampler.start(intervalSeconds, now=False).addErrback(self._onSamplerFailure)
-        if not _defferedLoopingCall:
+        _deferredLoopingCall = sampler.start(intervalSeconds, now=False).addErrback(
+            self._onSamplerFailure
+        )
+        if not _deferredLoopingCall:
             logger.error("Failed to start resource sampling loop")
             return False
 
@@ -249,7 +260,8 @@ class ServiceManager(MultiService):
             sampler.stop()
             return
 
-        logger.error("No running sampler to stop")
+        # Not an error: stopAll() calls this even if sampling was never started
+        debugLogger.debug("No running sampler to stop")
 
     def _sample(self) -> None:
         """
@@ -332,28 +344,46 @@ class ServiceManager(MultiService):
         to stop, and then halts them in reverse order. If the order cannot be
         resolved (dependency cycle or unregistered dependency), the services
         are stopped in reverse registration order instead. Never raises.
+
+        If a stop is already in flight, waits for it instead of starting a
+        second one, so the caller returns only when the services are stopped.
         """
-        self.stopSampling()
-        order = self._resolveOrder()
-        if order is None:
-            logger.error("Failed to resolve service order, using registration order")
-            order = self._baseServices()
-        debugLogger.info("Stopping services in order: %s", order)
-
-        await self._stopServices(reversed(order))
-        debugLogger.info("Stopped services in order: %s", order)
-
-    def shutdown(self) -> None:
-        """
-        Handle a graceful shutdown of the application.
-
-        This module provides functionality to shut down the application,
-        including stopping reactors and all active operations.
-        """
-
-        if self._shuttingDown:
-            debugLogger.info("Already shutting down, skipping")
+        if self._stopping is not None:
+            debugLogger.info("Services are already being stopped, waiting for it")
+            await self._stopping
             return
+
+        stopping: Deferred[None] = Deferred()
+        self._stopping = stopping
+        try:
+            self.stopSampling()
+            order = self._resolveOrder()
+            if order is None:
+                debugLogger.debug(
+                    "Failed to resolve service order, using registration order"
+                )
+                order = self._baseServices()
+            debugLogger.info("Stopping services in order: %s", order)
+
+            await self._stopServices(reversed(order))
+            debugLogger.info("Stopped services in order: %s", order)
+        finally:
+            self._stopping = None
+            stopping.callback(None)
+
+    def shutdown(self) -> Deferred[None]:
+        """
+        Stop all services, then the reactor. Idempotent.
+
+        Returns:
+            A Deferred that fires once the services are stopped and the reactor
+            was asked to stop. Repeated calls return the same Deferred, so a
+            caller that must not let the reactor die first (the reactor's
+            "before shutdown" trigger) can simply wait for it.
+        """
+        if self._shutdownDone is not None:
+            debugLogger.info("Already shutting down, skipping")
+            return self._shutdownDone
 
         self._shuttingDown = True
 
@@ -365,11 +395,13 @@ class ServiceManager(MultiService):
                 reactor.stop()  # pyright: ignore[reportAttributeAccessIssue]
                 debugLogger.info("Stopped reactor")
             except ReactorNotRunning:
-                logger.warning("Reactor already stopped")
+                # Already stopping, e.g. shutdown() was triggered by a signal
+                debugLogger.info("Reactor is already stopping")
 
-        ensureDeferred(self.stopAll()).addBoth(stopReactor)
+        self._shutdownDone = ensureDeferred(self.stopAll()).addBoth(stopReactor)
+        return self._shutdownDone
 
-    # Twisted IService API: overrides MultiService to honour the dependency order
+    # Twisted IService API: overrides MultiService to honor the dependency order
     # pyrefly: ignore[bad-override]
     def startService(self) -> Deferred[bool]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """
@@ -405,7 +437,9 @@ class ServiceManager(MultiService):
         Returns:
             list[BaseService]: A list of `BaseService` instances.
         """
-        return [service for service in self.services if isinstance(service, BaseService)]
+        return [
+            service for service in self.services if isinstance(service, BaseService)
+        ]
 
     def _dependenciesOf(self, service: BaseService) -> list[BaseService] | None:
         """
@@ -425,8 +459,12 @@ class ServiceManager(MultiService):
 
         dependencies: list[BaseService] = []
         for dependencyType in service.dependsOn:
-            debugLogger.debug(f"Resolving dependency {dependencyType.__name__} for {service.name}")
-            dependency = next((s for s in self._baseServices() if isinstance(s, dependencyType)), None)
+            debugLogger.debug(
+                f"Resolving dependency {dependencyType.__name__} for {service.name}"
+            )
+            dependency = next(
+                (s for s in self._baseServices() if isinstance(s, dependencyType)), None
+            )
 
             if dependency is None:
                 logger.error(
@@ -434,7 +472,9 @@ class ServiceManager(MultiService):
                 )
                 return None
 
-            debugLogger.debug(f"Resolved dependency {dependencyType.__name__} for {service.name}")
+            debugLogger.debug(
+                f"Resolved dependency {dependencyType.__name__} for {service.name}"
+            )
             dependencies.append(dependency)
 
         debugLogger.debug(f"Resolved dependencies for {service.name}")
@@ -483,7 +523,9 @@ class ServiceManager(MultiService):
 
             visiting.add(id(service))
             for dependency in dependencies:
-                debugLogger.debug(f"Visiting dependency {dependency.name} of service {service.name}")
+                debugLogger.debug(
+                    f"Visiting dependency {dependency.name} of service {service.name}"
+                )
                 if not visit(dependency):
                     return False
 

@@ -181,7 +181,8 @@ class BaseService(Service):
         logger.info(f"{self.name}: stopping")
 
         if self.state not in (ServiceState.Running, ServiceState.Failed):
-            logger.error(f"{self.name}: cannot stop")
+            # Not an error: shutdown stops every service, including ones never started
+            debugLogger.debug(f"{self.name}: nothing to stop in state {self.state}")
             return
 
         self._setState(ServiceState.Stopping)
