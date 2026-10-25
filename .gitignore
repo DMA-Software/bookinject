@@ -249,3 +249,9 @@ HANDOFF.md
 books/
 log/
 tmp/
+/_trial_temp/_trial_marker
+/_trial_temp/tests.application.test_main_appl/MainApplicationTests/test_failedStartupShutsDownWithE/f5x8old_/temp/bookinjector.xml
+/_trial_temp/tests.application.test_main_appl/MainApplicationTests/test_reactorShutdownAfterManager/297q8c98/temp/bookinjector.xml
+/_trial_temp/tests.application.test_main_appl/MainApplicationTests/test_reactorShutdownStopsService/w9vxi7j7/temp/bookinjector.xml
+/_trial_temp/tests.application.test_main_appl/MainApplicationTests/test_runRegistersTriggersThenRun/a3bhx7p9/temp/bookinjector.xml
+/_trial_temp/tests.application.test_main_appl/MainApplicationTests/test_startupStartsServices/eam5gxc_/temp/bookinjector.xml
