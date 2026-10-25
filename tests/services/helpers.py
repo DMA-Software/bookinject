@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from twisted.internet.defer import Deferred
 from twisted.internet.task import Clock
 
 from src.application.services import BaseService, EventBus, ServiceManager
@@ -17,6 +18,19 @@ class Db(BaseService):
 
     async def onStop(self) -> None:
         journal.append(f"stop {self.name}")
+
+
+class SlowStop(BaseService):
+    """onStop() takes as long as the test wants: fire ``release`` to finish it."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.release: Deferred[None] = Deferred()
+        self.stopCalls = 0
+
+    async def onStop(self) -> None:
+        self.stopCalls += 1
+        await self.release
 
 
 class Ocr(BaseService):

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from twisted.internet import reactor
+from twisted.internet.defer import ensureDeferred
 from twisted.trial.unittest import TestCase
 
 from src.application.services import (
@@ -14,7 +15,7 @@ from src.application.services import (
 )
 from src.enumerations import FailurePolicy, MetricSource, ServiceState
 from tests.services import helpers
-from tests.services.helpers import Bad, Child, Db, Fatal, Ocr, newManager
+from tests.services.helpers import Bad, Child, Db, Fatal, Ocr, SlowStop, newManager
 
 
 class Worker(BaseService):
@@ -208,6 +209,53 @@ class ShutdownTests(ManagerTestCase):
         self.assertTrue(self.manager.isShuttingDown)
         self.assertIs(db.state, ServiceState.Stopped)
         self.assertEqual(self.reactorStops, 1)
+
+    async def test_shutdownDeferredFiresAfterServicesStopped(self) -> None:
+        slow = SlowStop(self.events)
+        self.manager.register(slow)
+        await slow.start()
+
+        done = self.manager.shutdown()
+        self.assertFalse(done.called)
+        self.assertEqual(self.reactorStops, 0)
+        self.assertIs(self.manager.shutdown(), done)  # idempotent
+
+        slow.release.callback(None)
+
+        self.assertTrue(done.called)
+        self.assertIs(slow.state, ServiceState.Stopped)
+        self.assertEqual(self.reactorStops, 1)
+
+    async def test_stopAllDuringStopInFlightWaitsForIt(self) -> None:
+        slow = SlowStop(self.events)
+        self.manager.register(slow)
+        await slow.start()
+
+        first = ensureDeferred(self.manager.stopAll())
+        second = ensureDeferred(self.manager.stopAll())  # e.g. a signal during shutdown()
+        self.assertFalse(first.called)
+        self.assertFalse(second.called)
+
+        slow.release.callback(None)
+
+        self.assertTrue(first.called)
+        self.assertTrue(second.called)
+        self.assertEqual(slow.stopCalls, 1)
+
+    async def test_shutdownDuringStopAllWaitsForIt(self) -> None:
+        slow = SlowStop(self.events)
+        self.manager.register(slow)
+        await slow.start()
+
+        stopping = ensureDeferred(self.manager.stopAll())  # reactor stop by a signal
+        done = self.manager.shutdown()  # a FailFast service failed meanwhile
+        self.assertFalse(done.called)
+
+        slow.release.callback(None)
+
+        self.assertTrue(stopping.called)
+        self.assertTrue(done.called)
+        self.assertEqual(slow.stopCalls, 1)
 
     async def test_failFastServiceFailureShutsDown(self) -> None:
         db = Db(self.events)

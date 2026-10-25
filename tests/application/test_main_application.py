@@ -11,7 +11,7 @@ from twisted.trial.unittest import TestCase
 from src.application.main_application import MainApplication
 from src.application.services import BaseService
 from src.enumerations import ServiceState
-from tests.services.helpers import Db, Fatal
+from tests.services.helpers import Db, Fatal, SlowStop
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 FIXTURE_CONFIG = PROJECT_ROOT / "tests" / "fixtures" / "bookinjector.xml"
@@ -78,6 +78,23 @@ class MainApplicationTests(TestCase):
         await stopTrigger()
 
         self.assertIs(self.app.services.get(Db).state, ServiceState.Stopped)
+
+    async def test_reactorShutdownDuringManagerShutdownWaitsForServices(self) -> None:
+        slow = SlowStop(self.app.events)
+        self.register(slow)
+        self.app.run()
+        await ensureDeferred(self.app._startServices())
+        stopTrigger = self.calls[0][3]
+
+        self.app.services.shutdown()  # FailFast shutdown in flight
+        trigger = stopTrigger()  # a signal arrives: the reactor must wait
+        self.assertFalse(trigger.called)
+
+        slow.release.callback(None)
+
+        self.assertTrue(trigger.called)
+        self.assertIs(slow.state, ServiceState.Stopped)
+        self.assertEqual(slow.stopCalls, 1)
 
     async def test_reactorShutdownAfterManagerShutdownDoesNotStopTwice(self) -> None:
         self.register(Db(self.app.events))
