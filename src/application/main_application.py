@@ -14,12 +14,26 @@ from src.constants import DEFAULT_DEBUG_LOGGER_NAME, DEFAULT_MAIN_LOGGER_NAME
 
 
 class MainApplication:
+    """
+    Main application module.
+
+    This module defines the MainApplication class, which is responsible for
+    managing the application's configuration, services, logging, and the
+    event bus. It provides methods to run, terminate, and restart the application.
+    """
     def __init__(
         self,
         mainConfigFile: str,
         enableDebugLogger: bool = False,
         daemonize: bool = True,
     ):
+        """
+        Main module for initializing application components and handling configuration.
+
+        This module handles the initialization of configuration through an XML file,
+        logging setup, event bus initialization, and service management. It ensures
+        the provided configuration file is valid and accessible.
+        """
         if not mainConfigFile:
             raise ValueError("mainConfigFile must be provided")
 
@@ -87,7 +101,12 @@ class MainApplication:
         self.services.shutdown()
 
     async def _stopServices(self) -> None:
-        """Stop all services unless ``ServiceManager.shutdown()`` already did."""
+        """
+        Stop all services, or wait until a shutdown already requested has finished.
+
+        The reactor's "before shutdown" phase waits for this coroutine, so it must
+        not return while the services are still being stopped.
+        """
         if self.services.isShuttingDown:
             self.debugLogger.debug("Services are already being stopped, waiting for it")
             await self.services.shutdown()
@@ -96,7 +115,19 @@ class MainApplication:
         await self.services.stopAll()
 
     def terminate(self) -> None:
+        """
+        Module to manage the main application lifecycle and termination.
+
+        This module contains utility functions and classes for managing the
+        lifespan of the main application, including proper termination.
+        """
         self.logger.info("Terminating main application")
 
     def restart(self) -> None:
+        """
+        Restart the main application.
+
+        This method logs the restart of the main application. It does not return
+        any value or perform additional operations.
+        """
         self.logger.info("Restarting main application")

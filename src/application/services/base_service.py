@@ -173,10 +173,9 @@ class BaseService(Service):
             This method will log errors and continue the stopping process, even
             if exceptions occur during the onStop hook.
 
-        Warning:
-            Attempting to stop the service when it is not in the Running or
-            Failed states will log an error and return early without stopping
-            the service.
+        Note:
+            When the service is not in the Running or Failed state there is
+            nothing to stop: the call is logged at debug level and returns.
         """
         logger.info(f"{self.name}: stopping")
 
