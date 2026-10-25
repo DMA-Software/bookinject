@@ -251,15 +251,15 @@ class BaseService(Service):
 
         """
         logger.info(f"{self.name}: require called")
-        getAttribute = getattr(self.parent, "getAttribute", None)
-        if getAttribute is None:
+        getAttributeLookup = getattr(self.parent, "get", None)
+        if getAttributeLookup is None:
             logger.error(f"{self.name}: service is not attached to a ServiceManager")
             return None
 
         debugLogger.info(
             f"The service type for {self.name} is {serviceType} and it is registered."
         )
-        return getAttribute(serviceType)
+        return getAttributeLookup(serviceType)
 
     def runBlocking(self, func: Any, *args: Any, **kwargs: Any) -> Deferred[Any]:
         """
