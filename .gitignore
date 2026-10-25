@@ -243,3 +243,5 @@ cython_debug/
 .refact/
 .claude/
 .agentbridge/
+
+HANDOFF.md
