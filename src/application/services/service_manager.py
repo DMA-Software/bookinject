@@ -141,6 +141,11 @@ class ServiceManager(MultiService):
             return None
         return service
 
+    @property
+    def isShuttingDown(self) -> bool:
+        """True once ``shutdown()`` has been requested."""
+        return self._shuttingDown
+
     def status(self) -> dict[str, ServiceState]:
         """
         Return a dictionary mapping service names to their states.
