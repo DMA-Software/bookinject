@@ -52,7 +52,9 @@ if __name__ == "__main__":
     cli_args = parse_cli_args()
 
     main_application = MainApplication(
-        mainConfigFile=cli_args.configfile, enableDebugLogger=cli_args.debug
+        mainConfigFile=cli_args.configfile,
+        enableDebugLogger=cli_args.debug,
+        daemonize=not cli_args.no_daemonize,
     )
 
     exit_code = main_application.run()
