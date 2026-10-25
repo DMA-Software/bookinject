@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 
 from src.constants import DEFAULT_DEBUG_LOGGER_NAME, DEFAULT_MAIN_LOGGER_NAME
 from src.enumerations import MetricSource, ServiceState
+from src.shared import isMetricNumber
 
 try:
     import psutil
@@ -218,6 +219,10 @@ class ResourceMeter:
             logger.error(f"The name of the counter-metric must be a non-empty string")
             return
 
+        if not isMetricNumber(amount):
+            logger.error(f"Counter '{name}': the amount must be a finite number, got {amount!r}")
+            return
+
         if amount < 0:
             logger.error(f"Counter '{name}' cannot decrease (amount={amount})")
             return
@@ -261,8 +266,8 @@ class ResourceMeter:
             logger.error("The name must be a non-empty string")
             return
 
-        if not isinstance(value, (float, int)):
-            logger.error("The value must be a float or an integer")
+        if not isMetricNumber(value):
+            logger.error(f"Gauge '{name}': the value must be a finite number, got {value!r}")
             return
 
         logger.info(f"Gauge metric recorded: name={name}, value={value}, source={source}, unit={unit}")
@@ -303,8 +308,8 @@ class ResourceMeter:
             logger.error("The name must be a non-empty string")
             return
 
-        if not isinstance(delta, (float, int)):
-            logger.error("The value of delta must be float or integer.")
+        if not isMetricNumber(delta):
+            logger.error(f"Gauge '{name}': delta must be a finite number, got {delta!r}")
             return
 
         logger.info(f"Adding delta {delta} to gauge {name}")
