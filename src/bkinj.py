@@ -55,6 +55,7 @@ if __name__ == "__main__":
         mainConfigFile=cli_args.configfile, enableDebugLogger=cli_args.debug
     )
 
-    main_application.run()
+    exit_code = main_application.run()
 
     main_application.terminate()
+    sys.exit(exit_code)
